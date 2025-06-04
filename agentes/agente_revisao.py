@@ -1,0 +1,26 @@
+from agentes.interface_agente import AgenteInterface
+
+class AgenteRevisao(AgenteInterface):
+    def revisar_ato(self, ato: str, dados_extraidos: dict) -> dict:
+        resultado = {
+            "completo": True,
+            "faltando": [],
+            "comentario": ""
+        }
+
+        for chave, valores in dados_extraidos.items():
+            if not isinstance(valores, list):
+                valores = [valores]
+
+            for valor in valores:
+                if valor not in ato:
+                    resultado["completo"] = False
+                    resultado["faltando"].append({chave: valor})
+
+        if not resultado["completo"]:
+            resultado["comentario"] = "Algumas informações extraídas não foram utilizadas no ato."
+
+        return resultado
+
+    def executar(self, ato: str, dados_extraidos: dict) -> dict:
+        return self.revisar_ato(ato, dados_extraidos)

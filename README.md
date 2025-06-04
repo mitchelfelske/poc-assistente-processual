@@ -34,6 +34,12 @@ pip install -r requirements.txt
 python main.py
 ```
 
+3. Pela linha de comando (agentes):
+
+```bash
+python main_agents.py
+```
+
 3. Pela interface (streamlit):
 
 ```bash
