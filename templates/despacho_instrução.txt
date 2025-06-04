@@ -1,0 +1,15 @@
+DESPACHO DE INSTRUÇÃO
+
+Considerando o conteúdo da prestação de contas analisada, destacam-se os seguintes pontos relevantes:
+
+Resumo da peça:
+{{ resumo }}
+
+Informações extraídas:
+{% for chave, valor in informacoes.items() %}
+- {{ chave }}: {{ valor }}
+{% endfor %}
+
+Diante do exposto, determino o prosseguimento do feito com as providências cabíveis.
+
+Tribunal de Contas - Setor Técnico
