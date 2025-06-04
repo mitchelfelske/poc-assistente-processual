@@ -1,0 +1,5 @@
+.venv
+.env
+.azure/
+__pycache__/
+.vscode/launch.json
