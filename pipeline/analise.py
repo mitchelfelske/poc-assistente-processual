@@ -33,8 +33,9 @@ def extrair_informacoes(texto: str) -> dict:
 
     dados = {}
 
-    if m := re.search(r"(R\\$|R\$)\s?([\d\.,]+)", texto):
-        dados["valor_mencionado"] = m.group(0)
+    if m := re.search(r"(R\\$|R\$)\s?([\d\.,]+)(?![\d\.,])", texto):
+        dados["valor_mencionado"] = f"{m.group(1)} {m.group(2)}".rstrip('.,')
+
 
     if m := re.search(r"(?i)tribunal de contas|TCE", texto):
         dados["órgão_mencionado"] = "Tribunal de Contas"
