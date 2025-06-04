@@ -40,6 +40,12 @@ python main.py
 python main_agents.py
 ```
 
+3. Pela linha de comando (orquestrador de agentes):
+
+```bash
+python main_orquestrador.py
+```
+
 3. Pela interface (streamlit):
 
 ```bash
