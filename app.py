@@ -1,34 +1,30 @@
-
+import streamlit as st
 from pipeline.ingestao import processar_pecas
-from pipeline.analise import resumir_peca, extrair_informacoes, agregar_informacoes_pecas
+from pipeline.analise import extrair_informacoes, agregar_informacoes_pecas, resumir_peca
 from pipeline.proposicao import gerar_ato
 from pipeline.revisao import revisar_ato
 
-if __name__ == "__main__":
-    caminho_pdfs = "data/pecas_prestacao_contas"
-    processo = processar_pecas(caminho_pdfs)
+st.title("Assistente Processual - PoC")
 
-    informacoes_gerais = {}
-    resumo_geral = ""
+# Carregar e processar peças da pasta local
+caminho_pecas = "data/pecas_prestacao_contas"
+processo = processar_pecas(caminho_pecas)
 
-    print("Processando peças:")
-    for p in processo["peças"]:
-        print(f"Processo: {processo['processo']}")
-        print(f"{p['tipo']} ({p['origem']}) -> {p['arquivo']}")
+st.subheader("Peças processadas e informações extraídas")
+informacoes_agregadas = {}
+for peca in processo["peças"]:
+    st.markdown(f"**Arquivo:** {peca['arquivo']}")
+    infos = extrair_informacoes(peca["texto"])
+    
+    for chave, valor in infos.items():
+        st.write(f"- {chave}: {valor}")
 
-        print("Analisando peça...")
-        infos = extrair_informacoes(p["texto"])
-        
-        agregar_informacoes_pecas(infos, informacoes_gerais)
-        
-        print("\nResumindo peça...")    
-        #resumo = resumir_peca(p["texto"])
-        #resumo_geral += resumo + "\n"
-        print("\n")
+    agregar_informacoes_pecas(infos, informacoes_agregadas)    
 
-    print("Análise concluída.")
+    st.markdown("---")
 
-    resumo_geral = """
+if st.button("Gerar ato (baseado nos resumos das peças previamente gerados)"):
+    resumo = """
         O "Relatório de Prestação de Contas - Exercício 2023" da Prefeitura Municipal de Santo Vale apresenta as demonstrações contábeis, orçamentárias e financeiras do município. Destaca um superávit financeiro de R$ 2.300.000,00 e o cumprimento dos limites constitucionais de gastos em saúde (16,2%) e educação (25,5%). A despesa com pessoal representa 49,5% da receita corrente líquida. O relatório inclui também o parecer do controle interno e quadros demonstrativos da execução orçamentária.
 
         O Relatório Técnico do Controle Interno da Prefeitura Municipal de Santo Vale identifica inconsistências na contabilização de restos a pagar não processados, totalizando R$ 920.000,00, e a falta de publicação de editais completos no Portal da Transparência para licitações de materiais escolares em junho de 2023. O documento recomenda a regularização dos lançamentos contábeis e a comprovação do procedimento licitatório. As partes envolvidas são a Prefeitura Municipal de Santo Vale e a Unidade de Controle Interno.
@@ -39,23 +35,18 @@ if __name__ == "__main__":
 
         A peça processual é uma petição de defesa apresentada pelo Prefeito Municipal de Santo Vale, dirigida ao Conselheiro Relator. O documento visa esclarecer questões levantadas pela unidade técnica, destacando um erro no sistema de contabilidade relacionado aos restos a pagar, já corrigido, e falhas técnicas na publicação do Relatório de Gestão Fiscal no Portal da Transparência. Além disso, anexa cópia do processo licitatório referente à compra de materiais escolares.
         """
-
-    print("\nGerando ato...")
+    
     ato = gerar_ato(
         perfil_usuario="técnico",
         tipo_ato="despacho_instrucao",
-        resumo=resumo_geral
+        resumo=resumo
     )
-    print(ato)
-    print("\nAto gerado com sucesso!")
-    
-    print("\nInformações gerais extraídas:")
-    for chave, valor in informacoes_gerais.items():
-        print(f"{chave}: {valor}")
+    st.subheader("Ato proposto:")
+    st.write(ato)
 
-    print("\nRevisando ato...")
-    revisao = revisar_ato(ato, informacoes_gerais)
-    print("Ato completo?" , revisao["completo"])
+    revisao = revisar_ato(ato, informacoes_agregadas)
     if not revisao["completo"]:
-        print("Campos faltando:", revisao["faltando"])
-        print("Comentário:", revisao["comentario"])
+        st.markdown(f"**{revisao['comentario']}**")
+        st.markdown(f"**Campos faltando:** {revisao['faltando']}")
+    else:
+        st.markdown("**Ato completo!**")

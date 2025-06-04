@@ -12,7 +12,6 @@ def revisar_ato(ato: str, dados_extraidos: dict) -> dict:
             valores = [valores]
 
         for valor in valores:
-            print(f"Verificando valor: {valor}")
             if valor not in ato:
                 resultado["completo"] = False
                 resultado["faltando"].append({chave: valor})

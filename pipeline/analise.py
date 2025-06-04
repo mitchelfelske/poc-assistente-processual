@@ -44,3 +44,15 @@ def extrair_informacoes(texto: str) -> dict:
         dados["prazo_mencionado"] = m.group(1)
 
     return dados
+
+def agregar_informacoes_pecas(infos, valores_agregados):
+    for chave, valor in infos.items():
+        # transforma valor em lista para uniformizar
+        valores = valor if isinstance(valor, list) else [valor]
+
+        if chave not in valores_agregados:
+            valores_agregados[chave] = []
+
+        for v in valores:
+            if v not in valores_agregados[chave]:
+                valores_agregados[chave].append(v)

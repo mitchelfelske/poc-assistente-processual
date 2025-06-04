@@ -27,8 +27,17 @@ AZURE_OPENAI_API_VERSION=2025-01-01-preview
 pip install -r requirements.txt
 ```
 
-3. Execute o pipeline:
+### Execute o pipeline
+3. Pela linha de comando:
 
 ```bash
 python main.py
 ```
+
+3. Pela interface (streamlit):
+
+```bash
+streamlit run app.py
+```
+
+Acesse a URL: http://localhost:8501
