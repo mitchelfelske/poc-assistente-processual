@@ -1,52 +1,119 @@
 import streamlit as st
-from pipeline.ingestao import processar_pecas
-from pipeline.analise import extrair_informacoes, agregar_informacoes_pecas, resumir_peca
-from pipeline.proposicao import gerar_ato
-from pipeline.revisao import revisar_ato
+import os
+from agentes.agente_ingestao import AgenteIngestao
+from agentes.agente_analise import AgenteAnalise
+from agentes.agente_memoria import AgenteMemoria
+from agentes.agente_contexto import AgenteContexto
+from agentes.agente_proposicao import AgenteProposicao
 
-st.title("Assistente Processual - PoC")
+from agentes.orquestrador import Orquestrador
 
-# Carregar e processar peças da pasta local
-caminho_pecas = "data/pecas_prestacao_contas"
-processo = processar_pecas(caminho_pecas)
+# Variáveis de sessão
+if "pecas" not in st.session_state:
+    st.session_state.pecas = []
+if "estrutura" not in st.session_state:
+    st.session_state.estrutura = {}
+if "resumos" not in st.session_state:
+    st.session_state.resumos = {}
+if "memoria" not in st.session_state:
+    st.session_state.memoria = AgenteMemoria()
+if "linha_tempo" not in st.session_state:
+    st.session_state.linha_tempo = []
+if "narrativa" not in st.session_state:
+    st.session_state.narrativa = ""
+if "ato" not in st.session_state:
+    st.session_state.ato = ""
 
-st.subheader("Peças processadas e informações extraídas")
-informacoes_agregadas = {}
-for peca in processo["peças"]:
-    st.markdown(f"**Arquivo:** {peca['arquivo']}")
-    infos = extrair_informacoes(peca["texto"])
-    
-    for chave, valor in infos.items():
-        st.write(f"- {chave}: {valor}")
+st.header("🧠 InstruiAI - Assistente Processual (PoC)")
 
-    agregar_informacoes_pecas(infos, informacoes_agregadas)    
+st.sidebar.title("🔧 Ações do Assistente")
 
-    st.markdown("---")
+# Caminho do diretório com as peças
+caminho = st.sidebar.text_input("📁 Pasta com peças do processo", "data/pecas_prestacao_contas")
 
-if st.button("Gerar ato (baseado nos resumos das peças previamente gerados)"):
-    resumo = """
-        O "Relatório de Prestação de Contas - Exercício 2023" da Prefeitura Municipal de Santo Vale apresenta as demonstrações contábeis, orçamentárias e financeiras do município. Destaca um superávit financeiro de R$ 2.300.000,00 e o cumprimento dos limites constitucionais de gastos em saúde (16,2%) e educação (25,5%). A despesa com pessoal representa 49,5% da receita corrente líquida. O relatório inclui também o parecer do controle interno e quadros demonstrativos da execução orçamentária.
+# 1. Ingestão
+if st.sidebar.button("Executar Ingestão"):
+    ingestao = AgenteIngestao()
+    processo = ingestao.executar(caminho)
 
-        O Relatório Técnico do Controle Interno da Prefeitura Municipal de Santo Vale identifica inconsistências na contabilização de restos a pagar não processados, totalizando R$ 920.000,00, e a falta de publicação de editais completos no Portal da Transparência para licitações de materiais escolares em junho de 2023. O documento recomenda a regularização dos lançamentos contábeis e a comprovação do procedimento licitatório. As partes envolvidas são a Prefeitura Municipal de Santo Vale e a Unidade de Controle Interno.
+    st.session_state.pecas = processo["peças"]
+    st.success(f"{len(st.session_state.pecas)} peça(s) carregadas.")
 
-        O parecer técnico da Unidade de Fiscalização do Tribunal de Contas Estadual analisa as contas da Prefeitura de Santo Vale, constatando o cumprimento dos índices legais, exceto pela falta de publicação do Relatório de Gestão Fiscal do 2º semestre de 2023. Recomenda-se o julgamento com ressalvas e a aplicação de uma multa simbólica devido à falta de transparência fiscal. As partes envolvidas são a Prefeitura de Santo Vale e o Tribunal de Contas Estadual.
+# Mostrar arquivos carregados
+if st.session_state.pecas:
+    st.subheader("🧾 Peças Carregadas")
+    for p in st.session_state.pecas:
+        st.markdown(f"- **{p['arquivo']}**")
 
-        A peça processual é uma notificação do Tribunal de Contas Estadual ao Executivo Municipal de Santo Vale, solicitando a apresentação de contrarrazões em um prazo de 15 dias úteis. Os pontos a serem contestados incluem inconsistências nos restos a pagar no valor de R$ 920.000,00, a falta de publicação do Relatório de Gestão Fiscal do 2º semestre e a suposta irregularidade no processo licitatório para aquisição de materiais escolares.
+# 2. Análise
+if st.sidebar.button("Executar Análise"):
+    analise = AgenteAnalise()
+    for peca in st.session_state.pecas:
+        infos, resumo = analise.executar(peca)
+        st.session_state.estrutura[peca['arquivo']] = infos
+        st.session_state.resumos[peca['arquivo']] = resumo
+    st.success("Análise concluída.")
 
-        A peça processual é uma petição de defesa apresentada pelo Prefeito Municipal de Santo Vale, dirigida ao Conselheiro Relator. O documento visa esclarecer questões levantadas pela unidade técnica, destacando um erro no sistema de contabilidade relacionado aos restos a pagar, já corrigido, e falhas técnicas na publicação do Relatório de Gestão Fiscal no Portal da Transparência. Além disso, anexa cópia do processo licitatório referente à compra de materiais escolares.
-        """
-    
-    ato = gerar_ato(
+# 3. Memória
+if st.sidebar.button("Executar Memória"):
+    st.session_state.memoria.limpar_historico()
+    for peca in st.session_state.pecas:
+        peca_id = peca["arquivo"]
+        dados = st.session_state.estrutura.get(peca_id, {})
+        resumo = st.session_state.resumos.get(peca_id, "")
+        st.session_state.memoria.adicionar(peca_id, dados, resumo)
+    st.success("Histórico de memória atualizado.")
+
+# 4. Contexto
+if st.sidebar.button("Executar Contexto"):
+    contexto = AgenteContexto(st.session_state.memoria)
+    hist = st.session_state.memoria.obter_historico()
+    st.session_state.linha_tempo = contexto.gerar_linha_do_tempo(hist)
+    st.session_state.narrativa = contexto.gerar_resumo_narrativo(hist)
+    st.success("Contexto gerado.")
+
+# 5. Proposição
+if st.sidebar.button("Executar Proposição"):
+    proposicao = AgenteProposicao()
+    st.session_state.ato = proposicao.executar(
         perfil_usuario="técnico",
         tipo_ato="despacho_instrucao",
-        resumo=resumo
+        resumo=st.session_state.narrativa
     )
-    st.subheader("Ato proposto:")
-    st.write(ato)
+    st.success("Proposta de ato gerada.")
 
-    revisao = revisar_ato(ato, informacoes_agregadas)
-    if not revisao["completo"]:
-        st.markdown(f"**{revisao['comentario']}**")
-        st.markdown(f"**Campos faltando:** {revisao['faltando']}")
-    else:
-        st.markdown("**Ato completo!**")
+# RESULTADOS
+if st.session_state.estrutura:
+    st.subheader("📊 Análise") 
+
+    with st.expander("🔍 Estrutura das Peças (NER, PII, etc.)"):
+        for arquivo, estrutura in st.session_state.estrutura.items():
+            st.markdown(f"**{arquivo}**")
+            st.json(estrutura)
+
+    with st.expander("🧾 Resumos das Peças"):
+        for arquivo, resumo in st.session_state.resumos.items():
+            st.markdown(f"**{arquivo}**")
+            st.markdown(resumo)
+
+if st.session_state.memoria:
+    with st.expander("📚 Histórico da Memória"):
+        for evento in st.session_state.memoria.obter_historico():
+            st.markdown(f"**{evento['peca']}** - {evento['timestamp']}")
+            st.json(evento["dados"])
+            st.markdown(f"*Resumo:* {evento['resumo']}")
+
+if st.session_state.linha_tempo and st.session_state.narrativa:
+    st.markdown(" ### 📅 Contexto")
+    with st.expander("🕒 Linha do Tempo"):
+        for item in st.session_state.linha_tempo:
+            st.markdown(f"- {item['data']} | **{item['peca']}** | {item['partes']}")
+            st.markdown(f"  > {item['descricao']}")
+
+    with st.expander("📝 Resumo Narrativo"):
+        st.markdown(st.session_state.narrativa)
+
+if st.session_state.ato:
+    st.markdown(" ### 📄 Resultado")
+    with st.expander("📄 Ato Gerado"):
+        st.markdown(st.session_state.ato)
