@@ -28,16 +28,19 @@ st.header("🧠 InstruiAI - Assistente Processual (PoC)")
 
 st.sidebar.title("🔧 Ações do Assistente")
 
-# Caminho do diretório com as peças
-caminho = st.sidebar.text_input("📁 Pasta com peças do processo", "data/pecas_prestacao_contas")
-
 # 1. Ingestão
-if st.sidebar.button("Executar Ingestão"):
-    ingestao = AgenteIngestao()
-    processo = ingestao.executar(caminho)
+uploaded_files = st.sidebar.file_uploader(
+    "📤 Faça upload das peças do processo (apenas PDF)",
+    type=["pdf"],
+    accept_multiple_files=True
+)
 
+if st.sidebar.button("Executar Ingestão") and uploaded_files:
+    ingestao = AgenteIngestao()
+    processo = ingestao.executar_upload(uploaded_files)
+    st.session_state.pecas = []
     st.session_state.pecas = processo["peças"]
-    st.success(f"{len(st.session_state.pecas)} peça(s) carregadas.")
+    st.success(f"{len(st.session_state.pecas)} peça(s) carregadas com sucesso.")
 
 # Mostrar arquivos carregados
 if st.session_state.pecas:

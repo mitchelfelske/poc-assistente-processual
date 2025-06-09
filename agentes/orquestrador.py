@@ -18,7 +18,7 @@ class Orquestrador:
 
     def executar_fluxo(self, caminho_pecas: str, tipo_ato: str, modelo_ato: str):
         print("[1] Iniciando ingestão de peças...")
-        processo = self.ingestao.executar(caminho_pecas)
+        processo = self.ingestao.executar_local(caminho_pecas)
         
         print("[2]  Limpa histórico da memória...")
         self.memoria.limpar_historico()
@@ -26,7 +26,6 @@ class Orquestrador:
         print("[3] Analisando peças e extraindo informações...")
         for peca in processo['peças']:
             print(f"Analisando peça: {peca['arquivo']}")
-            print(f"Tipo: {peca['tipo']}, Origem: {peca['origem']}")
             print(f"Texto: {peca['texto']}...") 
             dados_estruturados, resumo = self.analise.executar(peca)
             peca_id = peca['arquivo']
