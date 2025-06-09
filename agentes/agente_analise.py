@@ -42,19 +42,6 @@ class AgenteAnalise(AgenteInterface):
         )
         return response.choices[0].message.content
 
-    def agregar_informacoes_pecas(self, infos, valores_agregados):
-        for chave, valor in infos.items():
-            valores = valor if isinstance(valor, list) else [valor]
-            if chave not in valores_agregados:
-                valores_agregados[chave] = []
-            for v in valores:
-                if v not in valores_agregados[chave]:
-                    valores_agregados[chave].append(v)
-
-    def executar(self, processo: dict) -> dict:
-        # Processo é o dict com as peças e metadados
-        informacoes_agregadas = {}
-        for peca in processo["peças"]:
-            infos = self.extrair_informacoes(peca["texto"])
-            self.agregar_informacoes_pecas(infos, informacoes_agregadas)
-        return informacoes_agregadas
+    def executar(self, peca: dict) -> dict:
+        infos = self.extrair_informacoes(peca["texto"])
+        return infos
